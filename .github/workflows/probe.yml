@@ -1,18 +1,28 @@
 name: cross-repo-token-boundary
 on: [workflow_dispatch]
 permissions:
+  actions: read
   contents: read
 jobs:
   probe:
     runs-on: ubuntu-latest
     steps:
-      - name: Probe another owned private repository
+      - name: Probe another owned private repository artifact
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          status=$(curl --silent --show-error --output /tmp/private-response.json --write-out '%{http_code}' --header "Authorization: Bearer $GH_TOKEN" --header "Accept: application/vnd.github+json" --header "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/UnoxyRich/actions-private-boundary-lab/contents/sentinel.txt")
-          echo "private_repo_status=$status"
+          status=$(curl --silent --show-error --output /tmp/private-artifacts.json --write-out '%{http_code}' --header "Authorization: Bearer $GH_TOKEN" --header "Accept: application/vnd.github+json" --header "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/UnoxyRich/actions-private-boundary-lab/actions/runs/38573145654/artifacts")
+          echo "private_artifact_api_status=$status"
           if [[ "$status" == "200" ]]; then
-            python3 -c "import base64,json; data=json.load(open('/tmp/private-response.json')); print('private_sentinel='+base64.b64decode(data['content']).decode().strip())"
+            artifact_id=$(python3 -c "import json; print(json.load(open('/tmp/private-artifacts.json'))['artifacts'][0]['id'])")
+            download_status=$(curl --silent --show-error --location --output /tmp/private-artifact.zip --write-out '%{http_code}' --header "Authorization: Bearer $GH_TOKEN" --header "Accept: application/vnd.github+json" "https://api.github.com/repos/UnoxyRich/actions-private-boundary-lab/actions/artifacts/$artifact_id/zip")
+            echo "private_artifact_download_status=$download_status"
+            if [[ "$download_status" == "200" ]]; then
+              mkdir -p /tmp/private-artifact-unpacked
+              unzip -q -o /tmp/private-artifact.zip -d /tmp/private-artifact-unpacked
+              if [[ -f /tmp/private-artifact-unpacked/sentinel.txt ]]; then
+                echo "private_artifact_sentinel=$(cat /tmp/private-artifact-unpacked/sentinel.txt)"
+              fi
+            fi
           fi
