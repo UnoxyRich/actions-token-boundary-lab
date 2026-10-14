@@ -1,5 +1,5 @@
 name: cross-repo-token-boundary
-on:
+'on':
   workflow_dispatch:
 permissions:
   contents: read
