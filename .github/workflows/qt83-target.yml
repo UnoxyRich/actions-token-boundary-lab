@@ -1,0 +1,9 @@
+name: QT-83 cross-repository dispatch target
+on:
+  workflow_dispatch:
+jobs:
+  synthetic-target:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Emit a non-sensitive marker
+        run: echo 'QT83_TARGET_RAN synthetic-marker-only'
